@@ -15,7 +15,7 @@ ActiveAdmin.register Item do
 
   index do 
     selectable_column
-    column :asin
+    column :number
     column :upc
     column :title
     column :description

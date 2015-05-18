@@ -157,7 +157,6 @@ class Task < ActiveRecord::Base
 end
 
 $task = Task.find($options[:task]) if $options[:task]
-$category = $task.category if $task
 
 class Proxy < ActiveRecord::Base
   scope :alive, -> { where(status: 'alive') }
@@ -443,10 +442,6 @@ class Scrape
       return
     end
 
-    if Item.exists?(number: asin)
-      log "------------------ ALREADY -------------------"
-      return
-    end
     ps = nil
 
     ps = @a.try do |scr|
@@ -460,12 +455,6 @@ class Scrape
 
     # initiate
     item = Item.new
-    
-    item.category_name = $category.name if $category
-    item.page_url = meta[:page_url]
-    item.category_url = meta[:category_url]
-    item.page = meta[:page]
-    item.source = SOURCE
     
     # key attributes
     item.url = url
@@ -482,17 +471,7 @@ class Scrape
     item.description = ps.css('.productDescriptionWrapper').first.inner_html.html2text if ps.css('.productDescriptionWrapper').first
     item.description = ps.css('#productDescription').first.inner_html.html2text if item.description.blank? and ps.css('#productDescription').first
     item.description = item.description.fix if item.description
-
-    feature_bullets = ps.css('#feature-bullets ul > li').map{|li| "* " + li.text.strip }.join("\n").fix
     
-    if item.description and feature_bullets
-      item.description = item.description + "\r\n\r\n" + feature_bullets
-    elsif feature_bullets
-      item.description = feature_bullets
-    end
-    
-    item.description += "\r\n\r\nShipping to USA lower 48 states only. No PO boxes or APO's."
-
     # image
     img_url = ps.css('#landingImage').first.attributes['data-old-hires'].value if ps.css('#landingImage').first
     img_url = ps.css('#landingImage').first.attributes['src'].value if img_url.blank?
@@ -500,20 +479,6 @@ class Scrape
     img_url = ps.css('body').inner_html[/(?<=colorImages).*/][/(?<=large...)http[^"]+/] if img_url.blank?
     img_url = ps.css('body').inner_html[/(?<=colorImages).*/][/(?<=main....)http[^"]+/] if img_url.blank?
     item.image_url = img_url
-
-    hi_res_imgs = ps.css('body').inner_html.scan(/(?<=hiRes...)http:[^"]+/)
-    large_imgs = ps.css('body').inner_html.scan(/(?<=large...)http:[^"]+/)
-    
-    hi_res_imgs.each_with_index do |img, index|
-      $logger.info "Store, " +  $options[:image_store].to_s
-      path = File.join($options[:image_store], "#{SOURCE}_#{item.number}_#{'%02d' % index}.JPG")
-      log "Downloading image #{img}"
-      RETRY.times do
-        @a.try {|w| w.get(img).save!(path) } # save! so that it overwrites the current file, otherwise, new.file.x created
-        break if File.size(path) != 0 # fix amazon file 0byte issue
-        sleep 2
-      end
-    end
 
     # save
     item.save!

@@ -50,16 +50,19 @@ ActiveRecord::Schema.define(version: 20150518035319) do
   add_index "admin_users", ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true, using: :btree
 
   create_table "items", force: :cascade do |t|
-    t.string   "asin"
+    t.string   "number"
     t.text     "title"
     t.text     "description"
     t.float    "price"
+    t.float    "list_price"
+    t.boolean  "out_of_stock"
     t.string   "upc"
     t.integer  "rank"
     t.string   "status"
     t.text     "url"
-    t.datetime "created_at",  null: false
-    t.datetime "updated_at",  null: false
+    t.text     "image_url"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
   end
 
   create_table "proxies", force: :cascade do |t|
@@ -68,10 +71,10 @@ ActiveRecord::Schema.define(version: 20150518035319) do
     t.string   "username"
     t.string   "password"
     t.string   "status"
-    t.integer  "hit_count"
-    t.integer  "failure_count"
-    t.datetime "created_at",    null: false
-    t.datetime "updated_at",    null: false
+    t.integer  "hit_count",     default: 0
+    t.integer  "failure_count", default: 0
+    t.datetime "created_at",                null: false
+    t.datetime "updated_at",                null: false
   end
 
   create_table "tasks", force: :cascade do |t|

@@ -6,8 +6,8 @@ class CreateProxies < ActiveRecord::Migration
       t.string :username
       t.string :password
       t.string :status
-      t.integer :hit_count
-      t.integer :failure_count
+      t.integer :hit_count, default: 0
+      t.integer :failure_count, default: 0
 
       t.timestamps null: false
     end

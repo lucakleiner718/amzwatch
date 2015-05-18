@@ -14,7 +14,7 @@ class ItemsController < InheritedResources::Base
 
   private
   def item_params
-    params.require(:item).permit(:asin, :title, :description, :price, :upc, :rank, :status, :url)
+    params.require(:item).permit(:number, :title, :description, :price, :upc, :rank, :status, :url)
   end
 end
 

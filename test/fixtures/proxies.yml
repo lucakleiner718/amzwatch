@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  ip: MyString
+  port: 1
+  username: MyString
+  password: MyString
+  status: MyString
+  hit_count: 1
+  failure_count: 1
+
+two:
+  ip: MyString
+  port: 1
+  username: MyString
+  password: MyString
+  status: MyString
+  hit_count: 1
+  failure_count: 1

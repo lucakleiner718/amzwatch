@@ -1,0 +1,45 @@
+<%= form_for(@proxy) do |f| %>
+  <% if @proxy.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@proxy.errors.count, "error") %> prohibited this proxy from being saved:</h2>
+
+      <ul>
+      <% @proxy.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :ip %><br>
+    <%= f.text_field :ip %>
+  </div>
+  <div class="field">
+    <%= f.label :port %><br>
+    <%= f.number_field :port %>
+  </div>
+  <div class="field">
+    <%= f.label :username %><br>
+    <%= f.text_field :username %>
+  </div>
+  <div class="field">
+    <%= f.label :password %><br>
+    <%= f.text_field :password %>
+  </div>
+  <div class="field">
+    <%= f.label :status %><br>
+    <%= f.text_field :status %>
+  </div>
+  <div class="field">
+    <%= f.label :hit_count %><br>
+    <%= f.number_field :hit_count %>
+  </div>
+  <div class="field">
+    <%= f.label :failure_count %><br>
+    <%= f.number_field :failure_count %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

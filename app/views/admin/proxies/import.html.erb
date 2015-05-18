@@ -1,0 +1,17 @@
+<form action="<%= do_import_admin_proxies_path%>" method="POST">
+  <%= hidden_field_tag :authenticity_token, form_authenticity_token -%>
+  <p>Enter a list of proxies in the following format <b>IP:PORT:USERNAME:PASSWORD</b> separated by a new line. For example:</p>
+  <p>
+    <pre>
+118.32.192.32:8080:user:pass
+118.32.192.33:8080:user:pass
+118.32.192.34:8080:user:pass
+118.32.192.35:8080:user:pass</pre>
+  </p>
+  <p>
+  <textarea name="proxies" rows="15" cols="10"></textarea>
+  </p>
+  <p>
+  <input type='submit' value='Import Proxy' />
+  </p>
+</form>

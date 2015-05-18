@@ -1,0 +1,39 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Ip:</strong>
+  <%= @proxy.ip %>
+</p>
+
+<p>
+  <strong>Port:</strong>
+  <%= @proxy.port %>
+</p>
+
+<p>
+  <strong>Username:</strong>
+  <%= @proxy.username %>
+</p>
+
+<p>
+  <strong>Password:</strong>
+  <%= @proxy.password %>
+</p>
+
+<p>
+  <strong>Status:</strong>
+  <%= @proxy.status %>
+</p>
+
+<p>
+  <strong>Hit count:</strong>
+  <%= @proxy.hit_count %>
+</p>
+
+<p>
+  <strong>Failure count:</strong>
+  <%= @proxy.failure_count %>
+</p>
+
+<%= link_to 'Edit', edit_proxy_path(@proxy) %> |
+<%= link_to 'Back', proxies_path %>

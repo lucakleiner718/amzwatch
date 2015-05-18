@@ -1,0 +1,39 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Proxies</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Ip</th>
+      <th>Port</th>
+      <th>Username</th>
+      <th>Password</th>
+      <th>Status</th>
+      <th>Hit count</th>
+      <th>Failure count</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @proxies.each do |proxy| %>
+      <tr>
+        <td><%= proxy.ip %></td>
+        <td><%= proxy.port %></td>
+        <td><%= proxy.username %></td>
+        <td><%= proxy.password %></td>
+        <td><%= proxy.status %></td>
+        <td><%= proxy.hit_count %></td>
+        <td><%= proxy.failure_count %></td>
+        <td><%= link_to 'Show', proxy %></td>
+        <td><%= link_to 'Edit', edit_proxy_path(proxy) %></td>
+        <td><%= link_to 'Destroy', proxy, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Proxy', new_proxy_path %>

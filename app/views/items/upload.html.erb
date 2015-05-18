@@ -1,0 +1,143 @@
+<div class="container-fluid">
+  <div style="margin:20px 0 20px">
+    <div class="row">
+      <div class="col-md-12">
+        <div id='alert' class="alert alert-success" role="alert" style="display: none">
+          You file has been uploaded. Please wait a few minutes while your items are being updated. Click <a href='/items/gedit'>here</a> to go back to the listing page.
+        </div>
+        <div id='import'>
+          <div id="container">
+            <div id="filelist" style='color: #666666'>Select file for importing...</div>
+            <br />
+            <input autocomplete="off" id='pickfiles' type='button' value='Select File'/>
+            <input autocomplete="off" id='btn-search-import' type='button' value='Upload'/>
+          </div>
+          </br />
+          <div id='result'></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // only for SearchImport (not for SearchManual)
+  var filename = '';
+
+  function search_import(file) {
+    $('#result p').html('<br /><%= image_tag "ajax-load-black.gif", {align: "top"} %> Searching...');
+    
+    $.ajax({url: '/home/run', data: {file: file}}).done(function(response) {
+      var key = response;
+      if (response.ok == true){
+        disable_all();
+        get_progress(response.key); 
+      } else {
+        alert(response.error);
+        $('#result p').html('');
+      }
+    });
+  }
+
+  function disable_all() {
+    $('#pickfiles').attr("disabled", "disabled");
+    $('#btn-search-import').attr("disabled", "disabled");
+    $('input[name="search_input"]').attr("disabled", "disabled");
+  }
+
+  function enable_all() {
+    $('#pickfiles').removeAttr("disabled");
+    $('#btn-search-import').removeAttr("disabled");
+    $('input[name="search_input"]').removeAttr("disabled");
+  }
+
+  function get_progress(key) {
+    $.ajax({url: '/home/progress/' + key}).done(function(response) {
+      $('#result').html('<div id="progressBar" class="jquery-ui-like" style="width:300px"><div>');
+      progressBar(response.percentage, $('#progressBar'));
+      
+      if (response.percentage >= 100) {
+        enable_all();
+        $('#result p').html('Complete! Download search result: <a href="/home/download/' + key + '?filename=' + escape(filename) + '">result.xls</a>');
+      } else {
+        setTimeout(function(){
+          get_progress(key);
+        }, 3000);
+      }
+    });
+  }
+  
+  var uploader;
+
+  $(document).ready(function() {
+    uploader = new plupload.Uploader({
+      runtimes : 'gears,html5,flash,silverlight,browserplus',
+      browse_button : 'pickfiles',
+      container : 'container',
+      max_file_size : '50mb',
+      url : '/items/upload',
+      multipart_params: {
+        authenticity_token: $('meta[name="csrf-token"]').attr('content')
+      },
+      flash_swf_url : '/plupload/js/plupload.flash.swf',
+      silverlight_xap_url : '/plupload/js/plupload.silverlight.xap',
+      // filters : [
+      //   {title : "MS Excel files", extensions : "xls"}
+      // ],
+      // resize : {width : 320, height : 240, quality : 90}
+    });
+
+    uploader.bind('Init', function(up, params) {});
+    uploader.init();
+
+    uploader.bind('FilesAdded', function(up, files) {
+      // only one file
+      while(up.files.length > 1) {
+        up.removeFile(up.files[0]);
+      }
+
+      $.each(files, function(i, file) {
+        $('#filelist').html(
+          '<div id="' + file.id + '">' +
+          file.name + ' (' + plupload.formatSize(file.size) + ') <b></b>' +
+        '</div>');
+      });
+
+      up.refresh(); // Reposition Flash/Silverlight
+    });
+
+    uploader.bind('UploadProgress', function(up, file) {
+      $('#result').html('<div id="progressBar" class="jquery-ui-like" style="width:300px"><div>');
+      progressBar(file.percent, $('#progressBar'));
+    });
+
+    uploader.bind('Error', function(up, err) {
+      $('#filelist').append("<div>Error: " + err.code +
+        ", Message: " + err.message +
+        (err.file ? ", File: " + err.file.name : "") +
+        "</div>"
+      );
+
+      up.refresh(); // Reposition Flash/Silverlight
+    });
+
+    uploader.bind('FileUploaded', function(up, file, response) {
+      // mark current file name
+      filename = file.name;
+      setTimeout(function() {
+        $('#import').hide();
+        $('#alert').show();
+      }, 1000);
+    });
+
+    $('#btn-search-import').click(function(e) {
+      uploader.start();
+      e.preventDefault();
+    });
+  });
+
+
+  
+
+  
+</script>

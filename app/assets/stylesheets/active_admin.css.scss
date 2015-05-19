@@ -25,6 +25,11 @@
 .status_tag.running {
   background-color: green;
 }
+
+.status_tag.in_progress {
+  background-color: green;
+}
+
 .status_tag.failed {
   background-color: red;
 }

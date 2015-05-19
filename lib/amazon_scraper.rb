@@ -137,6 +137,23 @@ ActiveRecord::Base.establish_connection(
 )
 
 class Item < ActiveRecord::Base
+  NEW = 'new'
+  IN_PROGRESS = 'in_progress'
+  DONE = 'done'
+  FAILED = 'failed'
+  
+  scope :failed, -> { where(status: FAILED) }
+  scope :in_progress, -> { where(status: IN_PROGRESS) }
+  scope :done, -> { where(status: DONE) }
+  scope :_new, -> { where(status: NEW) }
+
+  def get_url
+    if self.url.blank?
+      return "http://www.amazon.com/dp/#{self.number}"
+    else
+      return self.url
+    end
+  end
 end
 
 class Category < ActiveRecord::Base
@@ -155,8 +172,6 @@ class Task < ActiveRecord::Base
     self.progress += "#{Time.now.to_s}: #{msg}\n"
   end
 end
-
-$task = Task.find($options[:task]) if $options[:task]
 
 class Proxy < ActiveRecord::Base
   scope :alive, -> { where(status: 'alive') }
@@ -380,85 +395,21 @@ class Scrape
     # @a.user_agent_alias = 'Linux Mozilla'
   end
 
-  def run(url)
-    last_page = Item.where(category_url: url).maximum(:page) || 1
-    log "start from #{last_page}"
-    last_page.upto(MAX_PAGE) do |page|
-      page_url = url.gsub(/(?<=page=)[0-9]+/, page.to_s)
-      page_url = "#{page_url}&page=#{page}" unless page_url.include?('page=')
-
-      log "Page URL: #{page_url}"
-      
-      resp = nil
-
-      # RETRY.times {
-      #   begin
-      #     resp = @a.get(page_url)
-      #     break
-      #   rescue Exception => ex
-      #     resp = nil
-      #     log "Error fetching #{page_url}"
-      #     sleep DELAY_BEFORE_RETRY
-      #   end
-      # }
-
-      resp = @a.try do |scr|
-        scr.get(page_url)
-      end
-
-      $task.update_attributes(progress: "Scraping...") if $task
-
-      if resp.blank?
-        log "Cannot get page #{page_url}"
-        next
-      end
-      
-      ps = resp.parser
-
-      results_count = ps.css('#s-result-count').first.text[/(?<=of\s)[0-9,]+/] if ps.css('#s-result-count').first
-      log "Total " + results_count.to_s
-      
-      # only scrape PRIME items
-      count_all = ps.css('#atfResults > ul > li a > h2:nth-child(1)').count
-      item_urls = ps.css('#atfResults > ul > li a > h2:nth-child(1)').select{|h2| !h2.parent.parent.parent.parent.css('i.a-icon-prime').empty? }.map{|h2| h2.parent.attributes['href'].value }
-      
-      log "Item Count #{item_urls.count}"
-
-      item_urls.each do |item_url|
-        get(item_url, {page_url: page_url, category_url: url, page: page, results_count: results_count} )
-      end
-
-      break if count_all == 0
-    end
-  end
-
-  def get(url, meta = {})
-    log "Fetching #{url}"
-
-    asin = url[/(?<=dp.)[A-Z0-9]+/]
-    
-    if asin.blank?
-      log "Invalid ASIN from #{url.to_s}, " + meta.to_s
-      return
-    end
+  def get2(item)
+    log "Fetching #{item.url}"
 
     ps = nil
-
     ps = @a.try do |scr|
-      scr.get(url).parser
+      scr.get(item.get_url).parser
     end
-    
+
     if ps.nil?
       log "Cannot get item #{url}"
       return
     end
-
-    # initiate
-    item = Item.new
     
     # key attributes
-    item.url = url
-    item.number = asin
+    item.url = item.get_url unless item.url
     item.title = ps.css('#productTitle').first.text.strip if ps.css('#productTitle').first
     item.title = ps.css('#btAsinTitle').first.text.strip unless item.title
     item.list_price = ps.css('#price_feature_div td').select{|e| e.text.downcase.include?('list price') }.first.next_element.text.strip.floatify if ps.css('#price_feature_div td').select{|e| e.text.downcase.include?('list price') }.first
@@ -479,11 +430,10 @@ class Scrape
     img_url = ps.css('body').inner_html[/(?<=colorImages).*/][/(?<=large...)http[^"]+/] if img_url.blank?
     img_url = ps.css('body').inner_html[/(?<=colorImages).*/][/(?<=main....)http[^"]+/] if img_url.blank?
     item.image_url = img_url
+    item.status = Item::DONE
 
     # save
     item.save!
-    $task.update_attributes(status: Task::RUNNING, progress: "Last item scraped: #{item.number}") if $task
-    log "----------------- DONE -------------------"
     sleep DELAY
     return true
   end
@@ -498,19 +448,47 @@ end
 # trap Ctrl-C
 trap("SIGINT") { throw :ctrl_c }
 
+#catch :ctrl_c do
+#  begin
+#    $task.update_attributes(status: Task::RUNNING, progress: 'Starting...') if $task
+#    e = Scrape.new
+#    if $options[:url]
+#      e.run($options[:url])
+#    elsif $options[:item]
+#      e.get($options[:item])
+#    end
+#    $task.update_attributes(status: Task::DONE, progress: '100%') if $task
+#  rescue Exception => ex
+#    $logger.info "Something went wrong, please check your proxies\r\n#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")
+#    $task.update_attributes(status: Task::FAILED, progress: "Something went wrong, please check your proxies\r\n#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")) if $task
+#  end
+#end
+
+#--------------------------------------------
+# RUN
+#--------------------------------------------
+MAX = 10
 catch :ctrl_c do
-  begin
-    $task.update_attributes(status: Task::RUNNING, progress: 'Starting...') if $task
-    e = Scrape.new
-    if $options[:url]
-      e.run($options[:url])
-    elsif $options[:item]
-      e.get($options[:item])
+  while true
+    puts "-----------------"
+    collection = Item.in_progress
+    puts "Collection: #{collection.count}"
+
+    if collection.empty?
+      # queue
+      queue = Item._new.order('updated_at DESC').limit(MAX)
+      queue.update_all(status: Item::IN_PROGRESS)
+      puts "Nothing to do right now" if queue.empty?
+    else
+      # actual run
+      e = Scrape.new
+      collection.each do |i|
+        e.get2(i)
+      end
     end
-    $task.update_attributes(status: Task::DONE, progress: '100%') if $task
-  rescue Exception => ex
-    $logger.info "Something went wrong, please check your proxies\r\n#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")
-    $task.update_attributes(status: Task::FAILED, progress: "Something went wrong, please check your proxies\r\n#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")) if $task
+
+    sleep 3
   end
 end
 
+# DATABASE_URL=postgres://postgres:postgres@localhost:5432/amazon150517 ruby lib/amazon_scraper.rb 

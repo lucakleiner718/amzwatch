@@ -3,7 +3,7 @@ require 'sql_helper'
 class Item < ActiveRecord::Base
   extend SqlHelper
 
-  NEW = 'uploaded'
+  NEW = 'new'
   IN_PROGRESS = 'in_progress'
   DONE = 'done'
   FAILED = 'failed'

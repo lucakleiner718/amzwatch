@@ -1,0 +1,101 @@
+<%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
+
+<div id='import'>
+  <div id="container">
+    <div id="filelist" style='color: #666666'>Select file for importing...</div>
+    <br />
+    <input autocomplete="off" id='pickfiles' type='button' value='Select File'/>
+    <input autocomplete="off" id='btn-import' type='button' value='Import'/>
+  </div>
+</div>
+
+<div id='result'><p></p></div>
+
+<script>
+ 
+  var uploader;
+  var rand = 50 + Math.round(Math.random()*10) + Math.round(Math.random()*10) + Math.round(Math.random()*10);
+
+  $(document).ready(function() {
+    uploader = new plupload.Uploader({
+      runtimes : 'gears,html5,flash,silverlight,browserplus',
+      browse_button : 'pickfiles',
+      container : 'container',
+      max_file_size : '10mb',
+      url : '/admin/items/do_import',
+      multipart_params: {
+        authenticity_token: $('meta[name="csrf-token"]').attr('content')
+      },
+      flash_swf_url : '/plupload/js/plupload.flash.swf',
+      silverlight_xap_url : '/plupload/js/plupload.silverlight.xap',
+      filters : [
+        {title : "CSV Files", extensions : "*"}
+      ]
+    });
+
+    uploader.bind('Init', function(up, params) {});
+    uploader.init();
+
+    uploader.bind('FilesAdded', function(up, files) {
+      // only one file
+      while(up.files.length > 1) {
+        up.removeFile(up.files[0]);
+      }
+
+      $.each(files, function(i, file) {
+        $('#filelist').html(
+          '<div id="' + file.id + '">' +
+          file.name + ' (' + plupload.formatSize(file.size) + ') <b></b>' +
+        '</div>');
+      });
+
+      up.refresh(); // Reposition Flash/Silverlight
+    });
+
+    uploader.bind('UploadProgress', function(up, file) {
+      var n = file.percent;
+      if (n < 100) {
+        $('#result p').html('<br /><div id="progressBar" class="jquery-ui-like" style="width:300px"><div></div></div>Uploading...');
+        progressBar(n, $('#progressBar'));
+      } else {
+        $('#result p').html('<br /><div id="progressBar" class="jquery-ui-like" style="width:300px"><div></div></div>Uploaded. Importing...');
+        progressBar(rand, $('#progressBar'));
+      }
+    });
+
+    uploader.bind('Error', function(up, err) {
+      $('#filelist').append("<div>Error: " + err.code +
+        ", Message: " + err.message +
+        (err.file ? ", File: " + err.file.name : "") +
+        "</div>"
+      );
+
+      up.refresh(); // Reposition Flash/Silverlight
+    });
+
+    uploader.bind('FileUploaded', function(up, file, response) {
+      $('#' + file.id + " b").html("100%");
+      
+      
+      $('#result p').html('<br /><div id="progressBar" class="jquery-ui-like" style="width:300px"><div></div></div>Uploaded. Importing...');
+      progressBar(100, $('#progressBar'));
+
+      alert('IMPORT DONE');
+
+      window.location = '/admin/items';
+    });
+
+    $('#btn-import').click(function(e) {
+      $('#pickfiles').prop('disabled', true);
+      $('#btn-import').prop('disabled', true);
+      uploader.start();
+      
+      // set initial progress
+      $('#result p').html('<br /><div id="progressBar" class="jquery-ui-like" style="width:300px"><div></div></div>Uploading...');
+      progressBar(2, $('#progressBar'));
+
+      e.preventDefault();
+    });
+  });
+
+</script>

@@ -71,6 +71,17 @@ ActiveAdmin.register Proxy do
     link_to "Import Proxies", import_admin_proxies_path
   end
 
+  form do |f|
+    f.inputs Proxy.model_name.human do 
+      f.input :ip
+      f.input :port
+      f.input :username
+      f.input :password
+      #f.input :password, :input_html => { :type => 'text' } 
+      f.actions
+    end
+  end
+
   filter :ip
   filter :port
   filter :username

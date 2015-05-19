@@ -12,19 +12,17 @@ class Task < ActiveRecord::Base
   end
 
   def update_status!
-    if !self.running? && self.status == RUNNING
-      self.update_attributes(status: STOPPED, progress: '')
+    return false unless self.pid
+    begin
+      Process.getpgid(self.pid.to_i)
+      self.update_attributes(status: RUNNING, progress: '') unless self.status == RUNNING
+    rescue Errno::ESRCH => ex
+      self.update_attributes(status: STOPPED, progress: '') unless self.status == STOPPED
     end
   end
 
   def running?
-    return false unless self.pid
-    begin
-      Process.kill(0, self.pid.to_i)
-      return true
-    rescue
-      return false
-    end
+    return self.status == RUNNING
   end
 
   def resume!
@@ -74,14 +72,17 @@ class Task < ActiveRecord::Base
       self.progress = 'Starting...'
       self.save
 
-      config = YAML.load_file(File.join(Rails.root, 'config', 'config.yml'))
-      images_path = config[Rails.env]['images']
-      script = File.join(Rails.root, 'lib/scrapers/', self.name)
+      #config = YAML.load_file(File.join(Rails.root, 'config', 'config.yml'))
+      #images_path = config[Rails.env]['images']
+      script = File.join(Rails.root, 'lib/amazon_scraper.rb')
 
-      cmd = "ruby #{script} -t #{self.id} -i #{images_path} -u '#{self.url}'"
-      p cmd
+      #cmd = "ruby #{script} -t #{self.id} -i #{images_path} -u '#{self.url}'"
+      cmd = "ruby /tmp/ruby.rb"
+      p cmd, "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA"
 
       process = IO.popen(cmd)
+      p process.pid, "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA"
+
       Process.detach(process.pid)
       self.pid = process.pid
       self.save

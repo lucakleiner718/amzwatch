@@ -101,13 +101,15 @@ module SqlHelper
     fields = []
     attrs.each do |attr, value|
       col =  self.columns_hash[attr.to_s]
-      next unless col
+      unless col
+        p "Warning: column #{col} does not exist"
+        next
+      end
       fields << "\"#{attr}\"=#{con.quote(value, col)}"
     end
 
     p attrs.keys.map(&:to_s)
     p !attrs.keys.map(&:to_s).include?('updated_at')
-    p "XXXXXXXXXXXXX"
     
     updated_at_col = self.columns_hash['updated_at']
     fields << "\"updated_at\"=#{con.quote(@last_executed_at, updated_at_col)}" if updated_at_col && !attrs.keys.map(&:to_s).include?('updated_at')

@@ -544,7 +544,25 @@ class Scrape
   end
 
   def scrape_qty_left(item)
-    a = WClient.new
+    a = Mechanize.new do |agent|
+      agent.pre_connect_hooks << lambda do |agent, request|
+        headers = {
+          'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Encoding' => 'gzip,deflate,sdch',
+          'Accept-Language' => 'en-US,en;q=0.8,vi;q=0.6',
+          'Cache-Control' => 'max-age=0',
+          'Connection' => 'keep-alive',
+          'Host' => 'www.amazon.com',
+          'Origin' => 'http://www.amazon.com',
+          'Referer' => 'http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn',
+          'User-Agent' => 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.65 Safari/537.36',
+          'X-AUI-View' => 'Desktop',
+          'X-Requested-With' => 'XMLHttpRequest'
+        }
+        headers.each{|k,v| request[k] = v }
+      end
+    end
+
     ps = a.get('http://www.amazon.com/gp/product/' + item.number);0
     query_string = JSON.parse(ps.body[/loadFeatures.*bbop-ms3-ajax-endpoint.html/m][/(?<=var data = ){.*}/m])
     a.get('http://www.amazon.com/gp/product/du/bbop-ms3-ajax-endpoint.html?' + query_string.map{|k,v| "#{k}=#{v}"}.join('&'));0

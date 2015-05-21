@@ -12,6 +12,10 @@ class CreateItems < ActiveRecord::Migration
       t.string :status, default: 'new'
       t.text :url
       t.text :image_url
+      t.string :country
+      t.integer :qty_left
+      t.string :category
+      t.string :notes
 
       t.timestamps null: false
     end

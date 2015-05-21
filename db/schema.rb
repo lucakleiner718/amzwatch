@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150518035319) do
+ActiveRecord::Schema.define(version: 20150521055639) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -58,11 +58,15 @@ ActiveRecord::Schema.define(version: 20150518035319) do
     t.boolean  "out_of_stock"
     t.string   "upc"
     t.integer  "rank"
-    t.string   "status"
+    t.string   "status",       default: "new"
     t.text     "url"
     t.text     "image_url"
-    t.datetime "created_at",   null: false
-    t.datetime "updated_at",   null: false
+    t.string   "country"
+    t.integer  "qty_left"
+    t.string   "category"
+    t.string   "notes"
+    t.datetime "created_at",                   null: false
+    t.datetime "updated_at",                   null: false
   end
 
   create_table "proxies", force: :cascade do |t|
@@ -75,6 +79,13 @@ ActiveRecord::Schema.define(version: 20150518035319) do
     t.integer  "failure_count", default: 0
     t.datetime "created_at",                null: false
     t.datetime "updated_at",                null: false
+  end
+
+  create_table "settings", force: :cascade do |t|
+    t.string   "name"
+    t.string   "value"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "tasks", force: :cascade do |t|

@@ -77,11 +77,9 @@ class Task < ActiveRecord::Base
       script = File.join(Rails.root, 'lib/amazon_scraper.rb')
 
       #cmd = "ruby #{script} -t #{self.id} -i #{images_path} -u '#{self.url}'"
-      cmd = "ruby /tmp/ruby.rb"
-      p cmd, "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA"
+      cmd = "ruby #{File.join(Rails.root, 'lib/amazon_scraper.rb')}"
 
       process = IO.popen(cmd)
-      p process.pid, "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA", "AAAA"
 
       Process.detach(process.pid)
       self.pid = process.pid

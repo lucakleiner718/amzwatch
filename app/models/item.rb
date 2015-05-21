@@ -13,9 +13,21 @@ class Item < ActiveRecord::Base
   scope :done, -> { where(status: DONE) }
   scope :_new, -> { where(status: NEW) }
   
+
   def self.import(path)
     data = []
-    CSV.foreach(path, headers: true) {|line| data << line.to_h}
+    puts "---------------------------------------"
+    existing_numbers = Item.pluck(:number)
+    puts existing_numbers  
+
+    CSV.foreach(path, headers: true) {|line| 
+      puts "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      h_data = line.to_h
+      p h_data
+      p existing_numbers.include?(h_data['number'])
+      data << h_data unless existing_numbers.include?(h_data['number']) 
+    }
+
     self.execute_db_update!(data)
   end
 end

@@ -7,5 +7,8 @@
 #   Mayor.create(name: 'Emanuel', city: cities.first)
 
 Task.delete_all
-
 Task.create(name: 'Scraper', status: Task::NEW)
+
+
+Setting.delete_all
+Setting.create(name: 'ONLY_UPDATE_AFTER_X_HOURS', value: 24)

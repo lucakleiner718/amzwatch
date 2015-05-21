@@ -6,6 +6,9 @@ require 'active_record'
 require 'mechanize'
 require 'zlib'
 require 'timeout'
+require 'httparty'
+require 'uri'
+require 'date'
 
 $options = {}
 parser = OptionParser.new("", 24) do |opts|
@@ -356,6 +359,101 @@ Mechanize.class_eval do
   end
 end
 
+HTTParty::Response.class_eval do
+  def parser
+    Nokogiri::HTML(self.body)
+  end
+end
+
+class WClient
+  include HTTParty
+  follow_redirects false
+
+  attr_accessor :headers
+
+  def initialize
+    @headers = {
+      'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Encoding' => 'gzip,deflate,sdch',
+      'Accept-Language' => 'en-US,en;q=0.8,vi;q=0.6',
+      'Cache-Control' => 'max-age=0',
+      'Connection' => 'keep-alive',
+      'Host' => 'www.amazon.com',
+      'Origin' => 'http://www.amazon.com',
+      'Referer' => 'http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn',
+      'User-Agent' => 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.65 Safari/537.36',
+      'X-AUI-View' => 'Desktop',
+      'X-Requested-With' => 'XMLHttpRequest'
+    }
+    
+    @cookie = {}
+  end
+
+  def get(url)
+    
+    while true # handle redirect
+      @headers['Host'] = URI(url).host
+      
+      response = self.class.get(url, :headers => @headers)
+      update_cookie(response, url)
+    
+      if [301, 302].include? response.code 
+        p "redirecting to " + response['location']
+        url = response['location']
+      else
+        break
+      end
+    end
+    return response
+  end
+
+  def post(url, body)
+    while true
+      @headers['Host'] = URI(url).host
+
+      response = self.class.post(url, :body => body, :headers => @headers)
+      update_cookie(response, url)
+
+      if [301, 302].include? response.code 
+        p "redirecting to " + response['location']
+        url = response['location']
+      else
+        break
+      end
+    end
+
+    return response
+  end
+
+  private
+  def update_cookie(response, referer)
+    # Obtain authentication cookie, merge with existing cookie
+    @cookie.merge!(parse_cookies(response.headers['set-cookie']))
+    # trường hợp trùng. ví dụ Set-Cookie: a=1; b=1; a=3 --> lấy 3 thôi, cái CGI.Cookie.parse nó ra a => [1,3] do đó phải lấy .last
+    # tuy nhiên làm vậy (như cách hiện tại) lại ko support subcookie, ví dụ: AUTH=user=nghi&age=30 (AUTH => ['user=nghi', 'name=30'])
+    #cookie_str = @cookie.select{|k,v| !['domain', 'path', 'expires', 'max-age', 'version'].include?(k.to_s.downcase) }.map{|k,v| "#{k}=#{v.join("&")}"}.join("; ")
+    #cookie_str = @cookie.select{|k,v| !['domain', 'path', 'expires', 'max-age', 'version'].include?(k.to_s.downcase) }.map{|k,v| "#{k}=#{v.last}"}.join("; ")
+    #ko dùng CGI::Cookie nữa, nó làm mất dấu +
+    # ví dụ: x-wl-uid=1wBvpRznui0fSsb704qGff6zoLwoEUO+28SKrE13 => khi parse nó thành x-wl-uid=x-wl-uid=1wBvpRznui0fSsb704qGff6zoLwoEUO 28SKrE13
+    @headers['Cookie'] = @cookie.map{|k,v| "#{k}=#{v}"}.join("; ")
+    @headers['Referer'] = referer
+  end
+
+  def parse_cookies(cookie)
+    return {} if cookie.nil?
+
+    hash = {}
+    cookie.scan(/[^\s]+=[^\s]+(?=;)/).delete_if{|i| i[/^(path=|domain=|version=|expires=|max-age=)/i] }.each do |i|
+      key = i[/^[^=]+(?=\=)/] # lấy giá trị đầu tiên trước dấu bằng. Ví dụ:  "AUTH=user=1"[/^.*(?=\=)/] ==> AUTH
+      val = i[/(?<=\=).*$/] # lấy phần còn lại. Ví dụ: "AUTH=user=1"[/(?<=\=).*$/] ==> user=1
+      hash[key] = val
+      # @todo: cần support thêm trong trường hợp AUTH=id=1&name=John thì phải tách thành 2 cặp key/val là id=>1 và name=>John, chứ ko dùng 1 cặp AUTH=>id=1&name=John (trường hợp subcookie)
+    end
+
+    return hash
+  end
+end
+
 class Scrape
   SITE = 'http://www.amazon.com/'
   MAX_PAGE = 99
@@ -417,6 +515,9 @@ class Scrape
     item.price = ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first.next_element.text.strip.floatify if item.price.blank? and ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first
     item.price = ps.css('#priceblock_saleprice').first.text.strip.floatify if item.price.blank? and ps.css('#priceblock_saleprice').first
     item.price = ps.css('#olp_feature_div span.a-color-price').first.text.strip.floatify if item.price.blank? and ps.css('#olp_feature_div span.a-color-price').first
+    item.rank = ps.css('ul li span.zg_hrsr_rank').first.text[/[0-9,]+/].to_i if ps.css('ul li span.zg_hrsr_rank').first
+
+    item.category = ps.css('#wayfinding-breadcrumbs_feature_div > ul > li').map{|li| li.text.strip }.join(" ")
 
     item.out_of_stock = !ps.css('#availability > span.a-color-price').empty?
     item.description = ps.css('.productDescriptionWrapper').first.inner_html.html2text if ps.css('.productDescriptionWrapper').first
@@ -431,11 +532,55 @@ class Scrape
     img_url = ps.css('body').inner_html[/(?<=colorImages).*/][/(?<=main....)http[^"]+/] if img_url.blank?
     item.image_url = img_url
     item.status = Item::DONE
+    
+    qty_left, notes = scrape_qty_left(item)
+    item.qty_left = qty_left
+    item.notes = notes
 
     # save
     item.save!
     sleep DELAY
     return true
+  end
+
+  def scrape_qty_left(item)
+    a = WClient.new
+    ps = a.get('http://www.amazon.com/gp/product/' + item.number);0
+    query_string = JSON.parse(ps.body[/loadFeatures.*bbop-ms3-ajax-endpoint.html/m][/(?<=var data = ){.*}/m])
+    a.get('http://www.amazon.com/gp/product/du/bbop-ms3-ajax-endpoint.html?' + query_string.map{|k,v| "#{k}=#{v}"}.join('&'));0
+    a.get('http://www.amazon.com/gp/bd/impress.html/ref=pba_sr_0')
+    post_data = Hash[ps.parser.css('form#addToCart > input').map{|e| [e.attributes['name'].value, e.attributes['value'].value] }]
+    ps2 = a.post('http://www.amazon.com/gp/product/handle-buy-box', post_data)
+    ps3 = a.get('http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn')
+    ps3.parser.css('.sc-list-body > div').count
+    data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
+    update_params = {
+      'activePage' => ps3.parser.css('input[name="activePage"]').first.attributes['value'].value,
+      'savedPage' => ps3.parser.css('input[name="savedPage"]').first.attributes['value'].value,
+      'addressId' => ps3.parser.css('input[name="addressID"]').first.attributes['value'].value,
+      'addressZip' => '',
+      'hideAddonUpsell' => 1,
+      'flcExpanded' => 0,
+      "quantity.#{data_item_id}" => 999,#ps3.parser.css("input[name='quantity.#{data_item_id}']").first.attributes['value'].value,
+      'pageAction' => 'update-quantity',
+      "submit.update-quantity.#{data_item_id}" => ps3.parser.css("input[name='submit.update-quantity.#{data_item_id}']").first.attributes['value'].value,
+      'actionItemID' => data_item_id,
+      'asin' => item.number
+    }
+
+    ps4 = a.post('http://www.amazon.com/gp/cart/ajax-update.html', update_params)
+    
+    notes = nil
+    if ps4.body[/999 items/]
+      qty_left = 999
+    elsif ps4.body[/(?<=This seller has a limit of )[0-9,]*/]
+      qty_left = ps4.body[/(?<=This seller has a limit of )[0-9,]*/]
+      notes = 'This seller has a limit of ' + qty_left.to_s + " per customer"
+    elsif ps4.body[/[0-9,]*(?= of these available)/]
+      qty_left = ps4.body[/[0-9,]*(?= of these available)/].strip
+    end
+
+    return qty_left, notes
   end
 
   private 
@@ -445,42 +590,30 @@ class Scrape
   end
 end
 
-# trap Ctrl-C
-trap("SIGINT") { throw :ctrl_c }
-
-#catch :ctrl_c do
-#  begin
-#    $task.update_attributes(status: Task::RUNNING, progress: 'Starting...') if $task
-#    e = Scrape.new
-#    if $options[:url]
-#      e.run($options[:url])
-#    elsif $options[:item]
-#      e.get($options[:item])
-#    end
-#    $task.update_attributes(status: Task::DONE, progress: '100%') if $task
-#  rescue Exception => ex
-#    $logger.info "Something went wrong, please check your proxies\r\n#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")
-#    $task.update_attributes(status: Task::FAILED, progress: "Something went wrong, please check your proxies\r\n#{ex.message}\r\nBacktrace:\r\n" + ex.backtrace.join("\r\n")) if $task
-#  end
-#end
 
 #--------------------------------------------
 # RUN
 #--------------------------------------------
+
 MAX = 10
+
+# trap Ctrl-C
+trap("SIGINT") { throw :ctrl_c }
+
 catch :ctrl_c do
   while true
-    puts "-----------------"
     collection = Item.in_progress
-    puts "Collection: #{collection.count}"
 
     if collection.empty?
-      # queue
+      # 1st priority NEW item
       queue = Item._new.order('updated_at DESC').limit(MAX)
+      
+      # 2nd priority DONE item
+      queue = Item.done.order('updated_at DESC').limit(MAX) if queue.empty?
+
       queue.update_all(status: Item::IN_PROGRESS)
-      puts "Nothing to do right now" if queue.empty?
     else
-      # actual run
+      # Actually run the queue
       e = Scrape.new
       collection.each do |i|
         e.get2(i)

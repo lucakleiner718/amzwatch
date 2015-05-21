@@ -23,10 +23,43 @@ ActiveAdmin.register Item do
 
   index do 
     selectable_column
-    column :number
-    column :upc
-    column :title
-    column :description
+    column '' do |r|
+      if r.status == Item::NEW
+        raw 'Image not<br/>scraped'
+      else
+        link_to image_tag(r.image_url, height: '70', width: '50'), r.image_url, :target => "_blank"
+      end
+    end
+    column :country
+    column :number do |r|
+      link_to r.number, r.url, :target => "_blank" 
+    end
+    column :category, sortable: :category do |r|
+      if r.category
+        r.category.split(" › ").last
+      end
+    end
+    column :title, sortable: :title do |r|
+      if r.title
+        arr = r.title.split(/\s+/)
+        arr[0..20].join(" ") + ((arr.count > 21) ? "..." : "")
+      end
+    end
+    column :description, sortable: :description do |r|
+      if r.description
+        arr = r.description.split(/\s+/)
+        arr[0..20].join(" ") + ((arr.count > 21) ? "..." : "")
+      end
+    end
+    column :rank
+    column :qty_left, sortable: :qty_left do |r|
+      if r.notes
+        raw r.qty_left.to_s + "<br>(#{r.notes})"
+      else
+        r.qty_left
+      end
+    end
+    column :updated_at
     column :status, sortable: :status do |r|
       status_tag r.status
     end

@@ -15,6 +15,6 @@
  *= require 'bootstrap/css/bootstrap-theme.min.css'
  *= require 'starter-template.css'
  *= require 'jquery-ui'
- *= require progressbar/skins/jquery-ui-like/progressbar.css.scss
+ *= require 'progressbar/skins/jquery-ui-like/progressbar.css.scss'
  *= require 'datatable/media/css/jquery.dataTables.min.css.scss'
  */

@@ -149,10 +149,31 @@ class Item < ActiveRecord::Base
   scope :in_progress, -> { where(status: IN_PROGRESS) }
   scope :done, -> { where(status: DONE) }
   scope :_new, -> { where(status: NEW) }
+  
+  UK = 'UK'
+  US = 'US'
+
+  def amazonsite
+    if self.uk?
+      return 'http://www.amazon.co.uk'
+    else
+      return 'http://www.amazon.com'
+    end
+  end
+
+  def uk?
+    return false unless self.country
+    return self.country.upcase == UK
+  end
+
+  def us?
+    return false unless self.country
+    return self.country.upcase == US
+  end
 
   def get_url
     if self.url.blank?
-      return "http://www.amazon.com/dp/#{self.number}"
+      return "#{self.amazonsite}/dp/#{self.number}"
     else
       return self.url
     end
@@ -173,6 +194,12 @@ class Task < ActiveRecord::Base
   def log(msg)
     self.progress ||= ''
     self.progress += "#{Time.now.to_s}: #{msg}\n"
+  end
+end
+
+class Setting < ActiveRecord::Base
+  def self.get(name, cls)
+    Kernel.send cls.name, self.find_by_name(name).value
   end
 end
 
@@ -378,9 +405,9 @@ class WClient
       'Accept-Language' => 'en-US,en;q=0.8,vi;q=0.6',
       'Cache-Control' => 'max-age=0',
       'Connection' => 'keep-alive',
-      'Host' => 'www.amazon.com',
-      'Origin' => 'http://www.amazon.com',
-      'Referer' => 'http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn',
+      #'Host' => 'www.amazon.com',
+      #'Origin' => 'http://www.amazon.com',
+      #'Referer' => 'http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn',
       'User-Agent' => 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.65 Safari/537.36',
       'X-AUI-View' => 'Desktop',
       'X-Requested-With' => 'XMLHttpRequest'
@@ -455,7 +482,6 @@ class WClient
 end
 
 class Scrape
-  SITE = 'http://www.amazon.com/'
   MAX_PAGE = 99
   RETRY = 5
   DELAY = $options[:delay]
@@ -495,6 +521,14 @@ class Scrape
 
   def get2(item)
     log "Fetching #{item.url}"
+    
+    diff = ((Time.now - item.updated_at)/1.hours).round(2)
+    if diff > Setting::get('ONLY_UPDATE_AFTER_X_HOURS', Float)
+      log "diff = #{diff.to_s}"
+    else
+      log "diff = #{diff.to_s} (wait more)"
+      return
+    end
 
     ps = nil
     ps = @a.try do |scr|
@@ -552,9 +586,9 @@ class Scrape
           'Accept-Language' => 'en-US,en;q=0.8,vi;q=0.6',
           'Cache-Control' => 'max-age=0',
           'Connection' => 'keep-alive',
-          'Host' => 'www.amazon.com',
-          'Origin' => 'http://www.amazon.com',
-          'Referer' => 'http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn',
+          #'Host' => 'www.amazon.com',
+          #'Origin' => 'http://www.amazon.com',
+          #'Referer' => 'http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn',
           'User-Agent' => 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.65 Safari/537.36',
           'X-AUI-View' => 'Desktop',
           'X-Requested-With' => 'XMLHttpRequest'
@@ -563,13 +597,22 @@ class Scrape
       end
     end
 
-    ps = a.get('http://www.amazon.com/gp/product/' + item.number);0
-    query_string = JSON.parse(ps.body[/loadFeatures.*bbop-ms3-ajax-endpoint.html/m][/(?<=var data = ){.*}/m])
-    a.get('http://www.amazon.com/gp/product/du/bbop-ms3-ajax-endpoint.html?' + query_string.map{|k,v| "#{k}=#{v}"}.join('&'));0
-    a.get('http://www.amazon.com/gp/bd/impress.html/ref=pba_sr_0')
+    # Detail page
+    ps = a.get("#{item.amazonsite}/gp/product/" + item.number);0
+    #query_string = JSON.parse(ps.body[/loadFeatures.*bbop-ms3-ajax-endpoint.html/m][/(?<=var data = ){.*}/m])
+    #a.get('http://www.amazon.com/gp/product/du/bbop-ms3-ajax-endpoint.html?' + query_string.map{|k,v| "#{k}=#{v}"}.join('&'));0
+    if item.us?
+      a.get("#{item.amazonsite}/gp/bd/impress.html/ref=pba_sr_0")
+    elsif item.uk?
+      a.get("#{item.amazonsite}/gp/product/ajax-handlers/reftag.html/ref=psd_bb_i_#{item.number}")
+    else
+      return 0, 'Country not supported'
+    end
+      
     post_data = Hash[ps.parser.css('form#addToCart > input').map{|e| [e.attributes['name'].value, e.attributes['value'].value] }]
-    ps2 = a.post('http://www.amazon.com/gp/product/handle-buy-box', post_data)
-    ps3 = a.get('http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn')
+    # Post "Add to Cart"
+    ps2 = a.post("#{item.amazonsite}/gp/product/handle-buy-box", post_data)
+    ps3 = a.get("#{item.amazonsite}/gp/cart/view.html/ref=lh_cart_vc_btn")
     ps3.parser.css('.sc-list-body > div').count
     data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
     update_params = {
@@ -586,7 +629,7 @@ class Scrape
       'asin' => item.number
     }
 
-    ps4 = a.post('http://www.amazon.com/gp/cart/ajax-update.html', update_params)
+    ps4 = a.post("#{item.amazonsite}/gp/cart/ajax-update.html", update_params)
     
     notes = nil
     if ps4.body[/999 items/]
@@ -624,10 +667,10 @@ catch :ctrl_c do
 
     if collection.empty?
       # 1st priority NEW item
-      queue = Item._new.order('updated_at DESC').limit(MAX)
+      queue = Item._new.order('updated_at ASC').limit(MAX)
       
       # 2nd priority DONE item
-      queue = Item.done.order('updated_at DESC').limit(MAX) if queue.empty?
+      queue = Item.done.order('updated_at ASC').limit(MAX) if queue.empty?
 
       queue.update_all(status: Item::IN_PROGRESS)
     else
@@ -642,4 +685,4 @@ catch :ctrl_c do
   end
 end
 
-# DATABASE_URL=postgres://postgres:postgres@localhost:5432/amazon150517 ruby lib/amazon_scraper.rb 
+# DATABASE_URL=postgres://postgres:postgres@localhost:5432/amazon150517 ruby lib/amazon_scraper.rb

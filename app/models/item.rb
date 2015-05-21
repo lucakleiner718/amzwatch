@@ -12,7 +12,6 @@ class Item < ActiveRecord::Base
   scope :in_progress, -> { where(status: IN_PROGRESS) }
   scope :done, -> { where(status: DONE) }
   scope :_new, -> { where(status: NEW) }
-  
 
   def self.import(path)
     data = []

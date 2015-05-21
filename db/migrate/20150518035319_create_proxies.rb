@@ -5,7 +5,7 @@ class CreateProxies < ActiveRecord::Migration
       t.integer :port
       t.string :username
       t.string :password
-      t.string :status
+      t.string :status, default: 'alive'
       t.integer :hit_count, default: 0
       t.integer :failure_count, default: 0
 

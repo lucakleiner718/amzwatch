@@ -2,19 +2,6 @@ ActiveAdmin.register Item do
   actions :all, :except => [:new]
   TMP = '/tmp/'
 
-# See permitted parameters documentation:
-# https://github.com/activeadmin/activeadmin/blob/master/docs/2-resource-customization.md#setting-up-strong-parameters
-#
-# permit_params :list, :of, :attributes, :on, :model
-#
-# or
-#
-# permit_params do
-#   permitted = [:permitted, :attributes]
-#   permitted << :other if resource.something?
-#   permitted
-# end
-
   scope :all, default: true
   scope :_new
   scope :done
@@ -59,7 +46,9 @@ ActiveAdmin.register Item do
         r.qty_left
       end
     end
-    column :updated_at
+    column :updated_at, sortable: :updated_at do |r|
+      time_ago_in_words(r.updated_at)
+    end
     column :status, sortable: :status do |r|
       status_tag r.status
     end
@@ -80,5 +69,15 @@ ActiveAdmin.register Item do
     Item::import(path)
     render json: {}
   end
+
+  filter :country, as: :select, collection: proc { Item.uniq.pluck(:country) }
+  filter :status, as: :select, collection: proc { Item.uniq.pluck(:status) }
+  filter :number
+  filter :title
+  filter :description
+  filter :rank
+  filter :qty_left
+  filter :updated_at
+  filter :created_at
 
 end

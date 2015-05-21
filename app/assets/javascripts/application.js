@@ -21,3 +21,4 @@
 //= require jquery-ui
 //= require datatable/media/js/jquery.dataTables.min.js
 //= require moment/moment-with-locales.min.js
+//= require canvasjs/jquery.canvasjs.min.js

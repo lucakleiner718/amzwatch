@@ -3,6 +3,8 @@ require 'sql_helper'
 class Item < ActiveRecord::Base
   extend SqlHelper
 
+  has_many :item_statistics
+
   NEW = 'new'
   IN_PROGRESS = 'in_progress'
   DONE = 'done'
@@ -14,6 +16,13 @@ class Item < ActiveRecord::Base
   scope :done, -> { where(status: DONE) }
   scope :_new, -> { where(status: NEW) }
   scope :invalid, -> { where(status: INVALID) }
+  
+  def get_statistics(from = nil, to = nil)
+    scope = self.item_statistics
+    scope = scope.where('created_at::date >= :from', from: DateTime.parse(from)) if from
+    scope = scope.where('created_at::date <= :to', to: DateTime.parse(to)) if to
+    return scope.all
+  end
 
   def self.import(path)
     data = []

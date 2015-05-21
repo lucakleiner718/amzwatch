@@ -580,9 +580,14 @@ class Scrape
     item.image_url = img_url
     item.status = Item::DONE
     
-    qty_left, notes = scrape_qty_left(item)
-    item.qty_left = qty_left
-    item.notes = notes
+    if item.out_of_stock
+      item.qty_left = 0
+      item.notes = 'Out of stock'
+    else
+      qty_left, notes = scrape_qty_left(item)
+      item.qty_left = qty_left
+      item.notes = notes
+    end
 
     # save
     item.save!
@@ -694,7 +699,7 @@ catch :ctrl_c do
       end
     end
 
-    sleep 3
+    sleep 120
   end
 end
 

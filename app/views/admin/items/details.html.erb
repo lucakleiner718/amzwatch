@@ -1,0 +1,48 @@
+<%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
+<%= javascript_include_tag 'items.js', 'data-turbolinks-track' => true %>
+
+<h3>those were the days</h3>
+<div>
+  From <input type="text" id="fromDate" />
+  To <input type="text" id="toDate" />
+  <input type="button" id="btnDate" value="Update" />
+</div>
+<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+<script>
+  var chart;
+  function updateCharts() {
+
+  }
+  window.onload = function () {
+    //alert(1);
+    $('#fromDate').datepicker();
+    $('#toDate').datepicker();
+    $('#btnDate').click(function() {
+      $.ajax({
+        url: "<%= statistics_admin_item_path(@item) %>"
+      }).done(function(data) {
+        data = $(data).map(function(){ return {x: moment(this.created_at).toDate(), y: this.qty_left} }).get(); // x or label
+        console.log(data);
+        chart.options.data[0].dataPoints = data;
+        chart.render();
+      });
+    })
+    
+    chart = new CanvasJS.Chart("chartContainer", {
+      title:{ text: "Fruits sold in First Quarter" },
+      data: [{
+         /*** Change type "column" to "bar", "area", "line" or "pie"***/
+         type: "line",
+         dataPoints: [
+           { label: "banana", y: 18 },
+           { label: "orange", y: 29 },
+           { label: "apple", y: 40 },                                    
+           { label: "mango", y: 34 },
+           { label: "grape", y: 24 }
+         ]
+       }]
+     });
+
+    chart.render();
+  }
+</script>

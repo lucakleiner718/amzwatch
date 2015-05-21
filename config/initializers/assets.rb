@@ -17,4 +17,7 @@ Rails.application.config.assets.precompile << Proc.new { |path|
   end
 }
 
-Rails.application.config.assets.precompile += %w( progressbar/skins/jquery-ui-like/progressbar.css )
+Rails.application.config.assets.precompile += %w( 
+  progressbar/skins/jquery-ui-like/progressbar.css 
+  items.js
+)

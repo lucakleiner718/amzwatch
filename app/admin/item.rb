@@ -1,5 +1,5 @@
 ActiveAdmin.register Item do
-  actions :all, :except => [:new]
+  actions :all, :except => [:new, :edit]
   TMP = '/tmp/'
 
   scope :all, default: true
@@ -17,7 +17,7 @@ ActiveAdmin.register Item do
       elsif r.status == Item::INVALID
         raw 'No Image'
       else
-        link_to image_tag(r.image_url, height: '70', width: '50'), r.image_url, :target => "_blank"
+        link_to image_tag(r.image_url, height: '70', width: '50'), r.url, :target => "_blank"
       end
     end
     column :country
@@ -25,7 +25,7 @@ ActiveAdmin.register Item do
       if r.status == Item::INVALID
         r.number
       else
-        link_to r.number, r.url, :target => "_blank" 
+        link_to r.number, details_admin_item_path(r)
       end
     end
     column :category, sortable: :category do |r|
@@ -69,12 +69,22 @@ ActiveAdmin.register Item do
     # something here
   end
 
+  member_action :details, method: :get do
+    @item = Item.find(params[:id])
+    @page_title = 'Gaugau'
+  end
+
   collection_action :do_import, :method => :post do
     tmp_name = Digest::SHA1.hexdigest(rand(1000000).to_s)
     path = File.join(TMP, tmp_name)
     File.open(path, "wb") { |f| f.write(params[:file].read) }
     Item::import(path)
     render json: {}
+  end
+
+  member_action :statistics, method: :get do 
+    item = Item.find(params[:id])
+    render json: item.get_statistics
   end
 
   filter :country, as: :select, collection: proc { Item.uniq.pluck(:country) }

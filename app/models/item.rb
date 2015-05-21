@@ -7,23 +7,21 @@ class Item < ActiveRecord::Base
   IN_PROGRESS = 'in_progress'
   DONE = 'done'
   FAILED = 'failed'
+  INVALID = 'invalid'
   
   scope :failed, -> { where(status: FAILED) }
   scope :in_progress, -> { where(status: IN_PROGRESS) }
   scope :done, -> { where(status: DONE) }
   scope :_new, -> { where(status: NEW) }
+  scope :invalid, -> { where(status: INVALID) }
 
   def self.import(path)
     data = []
-    puts "---------------------------------------"
     existing_numbers = Item.pluck(:number)
     puts existing_numbers  
 
     CSV.foreach(path, headers: true) {|line| 
-      puts "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
       h_data = line.to_h
-      p h_data
-      p existing_numbers.include?(h_data['number'])
       data << h_data unless existing_numbers.include?(h_data['number']) 
     }
 

@@ -30,7 +30,7 @@
   background-color: green;
 }
 
-.status_tag.failed {
+.status_tag.failed, .status_tag.invalid {
   background-color: red;
 }
 

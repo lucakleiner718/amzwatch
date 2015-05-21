@@ -144,6 +144,7 @@ class Item < ActiveRecord::Base
   IN_PROGRESS = 'in_progress'
   DONE = 'done'
   FAILED = 'failed'
+  INVALID = 'invalid'
   
   scope :failed, -> { where(status: FAILED) }
   scope :in_progress, -> { where(status: IN_PROGRESS) }
@@ -354,6 +355,9 @@ Mechanize.class_eval do
         @list.current.mark_dead! if @list.current
         next_proxy
       rescue Exception => ex # cần làm rõ do Exception nào mà mark-proxy-as-dead, có thể có tr hợp lỗi do website
+        if ex.response_code == '404'
+          raise ex # lỗi do client 4xx thì bên bị catch ở code chính, mechanize chỉ bắt lỗi 5xx
+        end
         $logger.warn("Error: " + ex.message.split(/[\r\n]+/).first)
         @list.current.increase_failure_count! if @list.current
         next_proxy
@@ -531,8 +535,17 @@ class Scrape
     end
 
     ps = nil
-    ps = @a.try do |scr|
-      scr.get(item.get_url).parser
+    begin
+      ps = @a.try do |scr|
+        scr.get(item.get_url).parser
+      end
+    rescue Exception => ex # 404
+      if ex.response_code.to_s == '404'
+        if ex.page.body[/The Web address you entered is not a functioning page on our site/im]
+          item.status = Item::INVALID
+          item.save!
+        end
+      end
     end
 
     if ps.nil?

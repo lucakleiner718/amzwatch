@@ -6,20 +6,27 @@ ActiveAdmin.register Item do
   scope :_new
   scope :done
   scope :in_progress
-  scope :failed
+  #scope :failed
+  scope :invalid
 
   index do 
     selectable_column
     column '' do |r|
       if r.status == Item::NEW
         raw 'Image not<br/>scraped'
+      elsif r.status == Item::INVALID
+        raw 'No Image'
       else
         link_to image_tag(r.image_url, height: '70', width: '50'), r.image_url, :target => "_blank"
       end
     end
     column :country
     column :number do |r|
-      link_to r.number, r.url, :target => "_blank" 
+      if r.status == Item::INVALID
+        r.number
+      else
+        link_to r.number, r.url, :target => "_blank" 
+      end
     end
     column :category, sortable: :category do |r|
       if r.category

@@ -12,7 +12,7 @@
 //
 //= require jquery
 //= require jquery_ujs
-//= require turbolinks
+//- require turbolinks
 
 //= require bootstrap/js/bootstrap.min
 //= require plupload/js/plupload.full.min.js

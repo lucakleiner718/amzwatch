@@ -71,7 +71,7 @@ ActiveAdmin.register Item do
 
   member_action :details, method: :get do
     @item = Item.find(params[:id])
-    @page_title = 'Gaugau'
+    @page_title = @item.number
   end
 
   collection_action :do_import, :method => :post do
@@ -84,7 +84,7 @@ ActiveAdmin.register Item do
 
   member_action :statistics, method: :get do 
     item = Item.find(params[:id])
-    render json: item.get_statistics
+    render json: item.get_statistics(params[:from], params[:to])
   end
 
   filter :country, as: :select, collection: proc { Item.uniq.pluck(:country) }

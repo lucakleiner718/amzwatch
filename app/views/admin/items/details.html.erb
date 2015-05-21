@@ -1,35 +1,61 @@
 <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
 <%= javascript_include_tag 'items.js', 'data-turbolinks-track' => true %>
-
-<h3>those were the days</h3>
 <div>
   From <input type="text" id="fromDate" />
   To <input type="text" id="toDate" />
-  <input type="button" id="btnDate" value="Update" />
+  <input type="button" id="btnDate" value="Show" />
+  <input type="button" id="btnAll" value="Show All" />
 </div>
-<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+<br>
+<div style="">
+<div style="float:left;width:50%;birder:3px solid green;height: 300px;" id="chartQty"></div>
+<div style="float:left;width:50%;birder:2px solid red;height: 300px;" id="chartRank"></div>
+</div>
 <script>
-  var chart;
-  function updateCharts() {
-
+  var chartQty;
+  var chartRank;
+  function updateCharts(from, to) {
+    $.ajax({
+      url: "<%= statistics_admin_item_path(@item) %>",
+      data: {from: from, to: to}
+    }).done(function(data) {
+      var dataQty = $(data).map(function(){ return {label: moment(this.created_at).toDate(), y: this.qty_left} }).get(); // x or label
+      chartQty.options.data[0].dataPoints = dataQty;
+      chartQty.render();
+      
+      var dataRank = $(data).map(function(){ return {label: moment(this.created_at).toDate(), y: this.rank} }).get(); // x or label
+      chartRank.options.data[0].dataPoints = dataRank;
+      chartRank.render();      
+    });
   }
   window.onload = function () {
     //alert(1);
-    $('#fromDate').datepicker();
-    $('#toDate').datepicker();
+    $('#fromDate').datepicker({ dateFormat: 'yy/mm/dd' });
+    $('#toDate').datepicker({ dateFormat: 'yy/mm/dd' });
     $('#btnDate').click(function() {
-      $.ajax({
-        url: "<%= statistics_admin_item_path(@item) %>"
-      }).done(function(data) {
-        data = $(data).map(function(){ return {x: moment(this.created_at).toDate(), y: this.qty_left} }).get(); // x or label
-        console.log(data);
-        chart.options.data[0].dataPoints = data;
-        chart.render();
-      });
-    })
+      updateCharts($('#fromDate').val(), $('#toDate').val());
+    });
+
+    $('#btnAll').click(function() {
+      updateCharts();
+    });
     
-    chart = new CanvasJS.Chart("chartContainer", {
-      title:{ text: "Fruits sold in First Quarter" },
+    chartQty = new CanvasJS.Chart("chartQty", {
+      title:{ text: "<%= @item.number%>: Quantity Trend" },
+      data: [{
+         type: "line",
+         dataPoints: [
+           { label: "banana", y: 18 },
+           { label: "orange", y: 29 },
+           { label: "apple", y: 40 },                                    
+           { label: "mango", y: 34 },
+           { label: "grape", y: 24 }
+         ]
+       }]
+     });
+
+     chartRank = new CanvasJS.Chart("chartRank", {
+      title:{ text: "<%= @item.number%>: Rank Trend" },
       data: [{
          /*** Change type "column" to "bar", "area", "line" or "pie"***/
          type: "line",
@@ -43,6 +69,6 @@
        }]
      });
 
-    chart.render();
+    //chart.render();
   }
 </script>

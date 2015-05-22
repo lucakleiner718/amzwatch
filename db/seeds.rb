@@ -11,4 +11,4 @@ Task.create(name: 'Scraper', status: Task::NEW)
 
 
 Setting.delete_all
-Setting.create(name: 'ONLY_UPDATE_AFTER_X_HOURS', value: 24)
+Setting.create(name: 'UPDATE_AFTER_X_DAYS', value: 0)

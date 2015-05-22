@@ -8,8 +8,8 @@
 </div>
 <br>
 <div style="">
-<div style="float:left;width:50%;birder:3px solid green;height: 300px;" id="chartQty"></div>
-<div style="float:left;width:50%;birder:2px solid red;height: 300px;" id="chartRank"></div>
+<div style="float:left;width:100%;height: 300px;" id="chartQty"></div>
+<div style="float:left;width:100%;height: 300px;" id="chartRank"></div>
 </div>
 <script>
   var chartQty;
@@ -19,11 +19,11 @@
       url: "<%= statistics_admin_item_path(@item) %>",
       data: {from: from, to: to}
     }).done(function(data) {
-      var dataQty = $(data).map(function(){ return {label: moment(this.created_at).toDate(), y: this.qty_left} }).get(); // x or label
+      var dataQty = $(data).map(function(){ return {label: moment(this.created_at).format('YYYY-MM-DD'), x: moment(this.created_at).toDate(), y: this.qty_left} }).get(); // x or label
       chartQty.options.data[0].dataPoints = dataQty;
       chartQty.render();
       
-      var dataRank = $(data).map(function(){ return {label: moment(this.created_at).toDate(), y: this.rank} }).get(); // x or label
+      var dataRank = $(data).map(function(){ return {label: moment(this.created_at).format('YYYY-MM-DD'), x: moment(this.created_at).toDate(), y: this.rank} }).get(); // x or label
       chartRank.options.data[0].dataPoints = dataRank;
       chartRank.render();      
     });
@@ -42,8 +42,15 @@
     
     chartQty = new CanvasJS.Chart("chartQty", {
       title:{ text: "<%= @item.number%>: Quantity Trend" },
+      axisX:{      
+				valueFormatString: " ",
+				interval: 1,
+				intervalType: "day",
+        labelAngle: -50
+      },
       data: [{
          type: "line",
+         color: "red",
          dataPoints: [
            { label: "banana", y: 18 },
            { label: "orange", y: 29 },
@@ -56,6 +63,12 @@
 
      chartRank = new CanvasJS.Chart("chartRank", {
       title:{ text: "<%= @item.number%>: Rank Trend" },
+      axisX:{      
+				valueFormatString: " ",
+				interval: 1,
+				intervalType: "day",
+        labelAngle: -50
+      },
       data: [{
          /*** Change type "column" to "bar", "area", "line" or "pie"***/
          type: "line",

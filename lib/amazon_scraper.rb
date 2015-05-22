@@ -86,7 +86,7 @@ rescue Exception => ex
   exit
 end
 
-$options[:delay] ||= 2
+$options[:delay] ||= 0
 $options[:delay] = $options[:delay].to_i
 
 $logger = Logger.new($options[:log] || '/tmp/scraper.log')
@@ -145,6 +145,8 @@ class Item < ActiveRecord::Base
   DONE = 'done'
   FAILED = 'failed'
   INVALID = 'invalid'
+
+  has_many :item_statistics
   
   scope :failed, -> { where(status: FAILED) }
   scope :in_progress, -> { where(status: IN_PROGRESS) }
@@ -179,6 +181,10 @@ class Item < ActiveRecord::Base
       return self.url
     end
   end
+end
+
+class ItemStatistic < ActiveRecord::Base
+  
 end
 
 class Category < ActiveRecord::Base
@@ -526,11 +532,12 @@ class Scrape
   def get2(item)
     log "Fetching #{item.url}"
     
-    diff = ((Time.now - item.updated_at)/1.hours).round(2)
-    if diff > Setting::get('ONLY_UPDATE_AFTER_X_HOURS', Float)
-      log "diff = #{diff.to_s}"
+    diff = (Time.now.to_date - item.updated_at.to_date).to_i
+    min_wait = Setting::get('UPDATE_AFTER_X_DAYS', Float)
+    if diff >= min_wait or item.url.blank? # item lần đầu tiên thì chạy vô điều kiện
+      log "diff = #{diff.to_s}/#{min_wait} => go ahead!"
     else
-      log "diff = #{diff.to_s} (wait more)"
+      log "diff = #{diff.to_s}/#{min_wait} => wait... "
       return
     end
 
@@ -544,6 +551,7 @@ class Scrape
         if ex.page.body[/The Web address you entered is not a functioning page on our site/im]
           item.status = Item::INVALID
           item.save!
+          return
         end
       end
     end
@@ -591,6 +599,7 @@ class Scrape
 
     # save
     item.save!
+    item.item_statistics.create(rank: item.rank, qty_left: item.qty_left)
     sleep DELAY
     return true
   end
@@ -686,10 +695,9 @@ catch :ctrl_c do
     if collection.empty?
       # 1st priority NEW item
       queue = Item._new.order('updated_at ASC').limit(MAX)
-      
       # 2nd priority DONE item
       queue = Item.done.order('updated_at ASC').limit(MAX) if queue.empty?
-
+      # queue
       queue.update_all(status: Item::IN_PROGRESS)
     else
       # Actually run the queue
@@ -697,9 +705,9 @@ catch :ctrl_c do
       collection.each do |i|
         e.get2(i)
       end
-    end
 
-    sleep 120
+      sleep 30
+    end
   end
 end
 

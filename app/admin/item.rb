@@ -20,13 +20,16 @@ ActiveAdmin.register Item do
         link_to image_tag(r.image_url, height: '70', width: '50'), r.url, :target => "_blank"
       end
     end
-    column :country
     column :number do |r|
       if r.status == Item::INVALID
         r.number
       else
         link_to r.number, details_admin_item_path(r)
       end
+    end
+    column :country
+    column :price, sortable: :price do |r|
+      number_with_delimiter r.price if r.price
     end
     column :category, sortable: :category do |r|
       if r.category
@@ -36,13 +39,13 @@ ActiveAdmin.register Item do
     column :title, sortable: :title do |r|
       if r.title
         arr = r.title.split(/\s+/)
-        arr[0..20].join(" ") + ((arr.count > 21) ? "..." : "")
+        arr[0..10].join(" ") + ((arr.count > 11) ? "..." : "")
       end
     end
     column :description, sortable: :description do |r|
       if r.description
         arr = r.description.split(/\s+/)
-        arr[0..20].join(" ") + ((arr.count > 21) ? "..." : "")
+        arr[0..10].join(" ") + ((arr.count > 11) ? "..." : "")
       end
     end
     column :rank
@@ -59,6 +62,9 @@ ActiveAdmin.register Item do
     column :status, sortable: :status do |r|
       status_tag r.status
     end
+    column :export do |r|
+      link_to 'CSV', export_statistics_admin_item_path(r)
+    end
   end
 
   action_item(only: :index) do
@@ -71,7 +77,7 @@ ActiveAdmin.register Item do
 
   member_action :details, method: :get do
     @item = Item.find(params[:id])
-    @page_title = @item.number
+    @page_title = 'Item: ' + @item.number
   end
 
   collection_action :do_import, :method => :post do
@@ -87,9 +93,17 @@ ActiveAdmin.register Item do
     render json: item.get_statistics(params[:from], params[:to])
   end
 
+  member_action :export_statistics, method: :get do 
+    item = Item.find(params[:id])
+    path = File.join('/tmp/', "item-#{item.number}-#{Time.now.strftime('%Y.%m.%d')}.csv")
+    item.item_statistics.to_csv(path)
+    send_file path, :type => "application/text", :x_sendfile => true
+  end
+
   filter :country, as: :select, collection: proc { Item.uniq.pluck(:country) }
   filter :status, as: :select, collection: proc { Item.uniq.pluck(:status) }
   filter :number
+  filter :price
   filter :title
   filter :description
   filter :rank

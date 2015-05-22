@@ -3,7 +3,7 @@ require 'sql_helper'
 class Item < ActiveRecord::Base
   extend SqlHelper
 
-  has_many :item_statistics
+  has_many :item_statistics, dependent: :destroy
 
   NEW = 'new'
   IN_PROGRESS = 'in_progress'
@@ -19,19 +19,29 @@ class Item < ActiveRecord::Base
   
   def get_statistics(from = nil, to = nil)
     scope = self.item_statistics
-    scope = scope.where('created_at::date >= :from', from: Date.parse(from)) if from
-    scope = scope.where('created_at::date <= :to', to: Date.parse(to)) if to
+    scope = scope.where('created_at::date >= :from', from: Date.parse(from)) unless from.blank?
+    scope = scope.where('created_at::date <= :to', to: Date.parse(to)) unless to.blank?
     return scope.all
+  end
+
+  def display_name
+    self.number
   end
 
   def self.import(path)
     data = []
     existing_numbers = Item.pluck(:number)
     puts existing_numbers  
-
+    
+    # todo: better validation required
     CSV.foreach(path, headers: true) {|line| 
       h_data = line.to_h
-      data << h_data unless existing_numbers.include?(h_data['number']) 
+      next if h_data['number'].blank?
+      next if h_data['country'].blank?
+      next unless h_data['number'][/[a-z0-9]{10}/i]  # not an asin
+      next if existing_numbers.include?(h_data['number']) 
+
+      data << h_data
     }
 
     self.execute_db_update!(data)

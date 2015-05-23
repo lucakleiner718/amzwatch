@@ -364,6 +364,10 @@ Mechanize.class_eval do
         # proxy dead
         @list.current.mark_dead! if @list.current
         next_proxy
+      rescue Timeout::Error => ex
+        $logger.warn("Error: " + ex.message.split(/[\r\n]+/).first)
+        @list.current.increase_failure_count! if @list.current
+        next_proxy
       rescue Exception => ex # cần làm rõ do Exception nào mà mark-proxy-as-dead, có thể có tr hợp lỗi do website
         if ex.response_code == '404'
           raise ex # lỗi do client 4xx thì bên bị catch ở code chính, mechanize chỉ bắt lỗi 5xx
@@ -552,6 +556,8 @@ class Scrape
         scr.get(item.get_url).parser
       end
     rescue Exception => ex # 404
+      puts ex.message
+      puts ex.backtrace
       if ex.response_code.to_s == '404'
         if ex.page.body[/The Web address you entered is not a functioning page on our site/im]
           item.status = Item::INVALID
@@ -646,10 +652,17 @@ class Scrape
     ps2 = a.post("#{item.amazonsite}/gp/product/handle-buy-box", post_data)
     ps3 = a.get("#{item.amazonsite}/gp/cart/view.html/ref=lh_cart_vc_btn")
     ps3.parser.css('.sc-list-body > div').count
-    unless ps3.parser.css('div[data-asin="' + item.number + '"]').first
-      return 0, 'Cannot add item to Cart'
+    
+    if ps3.parser.css('div[data-asin="' + item.number + '"]').first
+      data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
+    else
+      url_size = 'http://www.amazon.com' + ps.body[/\/gp\/twister[^"]+/] + "&psc=1&asinList=#{item.number}&id=#{item.number}&mType=full"
+      ps_size = a.get(url_size)
+      post_data['offerListingID'] = ps_size.body[/(?<=offerListingID." value=.")[^\\]*/]
+      ps2 = a.post("http://www.amazon.com/gp/product/handle-buy-box", post_data)
+      ps3 = a.get("http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn")
+      data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
     end
-    data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
     
     update_params = {
       'activePage' => ps3.parser.css('input[name="activePage"]').first.attributes['value'].value,

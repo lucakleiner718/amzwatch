@@ -656,11 +656,11 @@ class Scrape
     if ps3.parser.css('div[data-asin="' + item.number + '"]').first
       data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
     else
-      url_size = 'http://www.amazon.com' + ps.body[/\/gp\/twister[^"]+/] + "&psc=1&asinList=#{item.number}&id=#{item.number}&mType=full"
+      url_size = item.amazonsite + ps.body[/\/gp\/twister[^"]+/] + "&psc=1&asinList=#{item.number}&id=#{item.number}&mType=full"
       ps_size = a.get(url_size)
       post_data['offerListingID'] = ps_size.body[/(?<=offerListingID." value=.")[^\\]*/]
-      ps2 = a.post("http://www.amazon.com/gp/product/handle-buy-box", post_data)
-      ps3 = a.get("http://www.amazon.com/gp/cart/view.html/ref=lh_cart_vc_btn")
+      ps2 = a.post("#{item.amazonsite}/gp/product/handle-buy-box", post_data)
+      ps3 = a.get("#{item.amazonsite}/gp/cart/view.html/ref=lh_cart_vc_btn")
       data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
     end
     

@@ -19,18 +19,16 @@
 .status_tag.sync {
   background-color: orange;
 }
-.status_tag.uploaded {
-  
+
+.status_tag.invalid {
+  background-color: blue;
 }
-.status_tag.running {
+
+.status_tag.in_progress, .status_tag.running {
   background-color: green;
 }
 
-.status_tag.in_progress {
-  background-color: green;
-}
-
-.status_tag.failed, .status_tag.invalid {
+.status_tag.failed, .status_tag.invalid, .status_tag.dead {
   background-color: red;
 }
 

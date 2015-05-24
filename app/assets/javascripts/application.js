@@ -22,3 +22,32 @@
 //= require datatable/media/js/jquery.dataTables.min.js
 //= require moment/moment-with-locales.min.js
 //= require canvasjs/jquery.canvasjs.min.js
+//= require_self
+
+Array.prototype.max = function(callback) {
+  var max;
+  for(var i=0; i<this.length; i++) {
+    var val = callback(this[i]);
+    if (max == null) {
+      max = val;
+    } else if (val > max) {
+      max = val;
+    }
+  }
+
+  return max;
+}
+
+Array.prototype.min = function(callback) {
+  var min;
+  for(var i=0; i<this.length; i++) {
+    var val = callback(this[i]);
+    if (min == null) {
+      min = val;
+    } else if (val < min) {
+      min = val;
+    }
+  }
+
+  return min;
+}

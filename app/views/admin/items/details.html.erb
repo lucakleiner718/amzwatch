@@ -19,13 +19,26 @@
       url: "<%= statistics_admin_item_path(@item) %>",
       data: {from: from, to: to}
     }).done(function(data) {
-      var dataQty = $(data).map(function(){ return {label: moment(this.created_at).format('YYYY-MM-DD'), x: moment(this.created_at).toDate(), y: this.qty_left} }).get(); // x or label
+      var dataQty = $(data).map(function(){ return {
+        label: moment(this.created_at).format('YYYY-MM-DD'), 
+        x: moment(this.created_at).startOf('day').toDate(), 
+        y: this.qty_left} }
+      ).get(); // x or label
       chartQty.options.data[0].dataPoints = dataQty;
       chartQty.render();
       
-      var dataRank = $(data).map(function(){ return {label: moment(this.created_at).format('YYYY-MM-DD'), x: moment(this.created_at).toDate(), y: this.rank} }).get(); // x or label
+      var dataRank = $(data).map(function(){ return {label: moment(this.created_at).format('YYYY-MM-DD'), x: moment(this.created_at).startOf('day').toDate(), y: this.rank} }).get(); // x or label
       chartRank.options.data[0].dataPoints = dataRank;
-      chartRank.render();      
+      chartRank.render();
+
+      var max_date = data.max(function(e){ return moment(e.created_at).format('YYYY/MM/DD') });
+      var min_date = data.min(function(e){ return moment(e.created_at).format('YYYY/MM/DD') });
+      
+      if (from == null){
+        $('#fromDate').val(min_date);
+        $('#toDate').val(max_date);
+      }
+
     });
   }
   window.onload = function () {
@@ -43,7 +56,7 @@
     chartQty = new CanvasJS.Chart("chartQty", {
       title:{ text: "<%= @item.number%>: Quantity Trend" },
       axisX:{      
-				valueFormatString: " ",
+				valueFormatString: "YY-MM-DD",
 				interval: 1,
 				intervalType: "day",
         labelAngle: -50
@@ -51,20 +64,14 @@
       data: [{
          type: "line",
          color: "red",
-         dataPoints: [
-           { label: "banana", y: 18 },
-           { label: "orange", y: 29 },
-           { label: "apple", y: 40 },                                    
-           { label: "mango", y: 34 },
-           { label: "grape", y: 24 }
-         ]
+         dataPoints: []
        }]
      });
 
      chartRank = new CanvasJS.Chart("chartRank", {
       title:{ text: "<%= @item.number%>: Rank Trend" },
       axisX:{      
-				valueFormatString: " ",
+				valueFormatString: "YY-MM-DD",
 				interval: 1,
 				intervalType: "day",
         labelAngle: -50
@@ -72,15 +79,11 @@
       data: [{
          /*** Change type "column" to "bar", "area", "line" or "pie"***/
          type: "line",
-         dataPoints: [
-           { label: "banana", y: 18 },
-           { label: "orange", y: 29 },
-           { label: "apple", y: 40 },                                    
-           { label: "mango", y: 34 },
-           { label: "grape", y: 24 }
-         ]
+         dataPoints: []
        }]
      });
+
+     updateCharts();
 
     //chart.render();
   }

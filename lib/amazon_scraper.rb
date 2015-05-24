@@ -188,7 +188,18 @@ class Item < ActiveRecord::Base
 end
 
 class ItemStatistic < ActiveRecord::Base
-  
+  def self.update_qty_change!
+    sql = %Q{
+      UPDATE item_statistics origin SET qty_change = (
+        SELECT origin.qty_left - qty_left 
+        FROM item_statistics 
+        WHERE item_id = origin.item_id AND created_at < origin.created_at
+        ORDER by created_at DESC
+        LIMIT 1
+      ) WHERE qty_change IS NULL;
+    }
+    self.connection.execute(sql)
+  end
 end
 
 class Category < ActiveRecord::Base
@@ -615,6 +626,18 @@ class Scrape
     img_url = ps.css('body').inner_html[/(?<=colorImages).*/][/(?<=main....)http[^"]+/] if img_url.blank?
     item.image_url = img_url
     item.status = Item::DONE
+
+    begin
+      item.sizes = ps.css('#native_dropdown_selected_size_name > option').map{|e| e.text.strip }.delete_if{|e| e == 'Select'}.join(" | ")
+    rescue Exception => ex
+      
+    end
+
+    begin
+      item.colors = ps.css('#variation_color_name > ul > li').map{|li| li.attributes['title'].value.gsub('Click to select ', '') }.join(" | ")
+    rescue Exception => ex
+      
+    end
     
     if item.out_of_stock
       item.qty_left = 0

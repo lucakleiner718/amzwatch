@@ -603,9 +603,12 @@ class Scrape
       item.qty_left = 0
       item.notes = 'Out of stock'
     else
-      qty_left, notes = scrape_qty_left(item)
+      qty_left, notes, others = scrape_qty_left(item)
       item.qty_left = qty_left
       item.notes = notes
+      if others && others[:price]
+        item.price = others[:price]
+      end
     end
 
     # save
@@ -662,6 +665,16 @@ class Scrape
       ps2 = a.post("#{item.amazonsite}/gp/product/handle-buy-box", post_data)
       ps3 = a.get("#{item.amazonsite}/gp/cart/view.html/ref=lh_cart_vc_btn")
       data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
+      
+      ps_size_ps = Nokogiri::HTML(ps_size.body[/(?<={"price_feature_div":").*(?="})/].gsub(/\\[t,n]/, "").gsub('\"', "").gsub('\/', '/'))
+      price = ps_size_ps.css('#priceblock_ourprice').first.text.strip.floatify if ps_size_ps.css('#priceblock_ourprice').first
+      price = ps_size_ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first.next_element.text.strip.floatify if price.blank? and ps_size_ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first
+      price = ps_size_ps.css('#priceblock_saleprice').first.text.strip.floatify if price.blank? and ps_size_ps.css('#priceblock_saleprice').first
+      price = ps_size_ps.css('#olp_feature_div span.a-color-price').first.text.strip.floatify if price.blank? and ps_size_ps.css('#olp_feature_div span.a-color-price').first
+    end
+
+    if price
+      others = {price: price}
     end
     
     update_params = {
@@ -690,7 +703,7 @@ class Scrape
       qty_left = ps4.body[/[0-9,]*(?= of these available)/].strip
     end
 
-    return qty_left, notes
+    return qty_left, notes, others
   end
 
   private 
@@ -711,25 +724,30 @@ MAX = 10
 trap("SIGINT") { throw :ctrl_c }
 
 catch :ctrl_c do
-  while true
-    collection = Item.in_progress
+  begin
+    while true
+      collection = Item.in_progress
 
-    if collection.empty?
-      # 1st priority NEW item
-      queue = Item._new.order('updated_at ASC').limit(MAX)
-      # 2nd priority DONE item
-      queue = Item.done.order('updated_at ASC').limit(MAX) if queue.empty?
-      # queue
-      queue.update_all(status: Item::IN_PROGRESS)
-    else
-      # Actually run the queue
-      e = Scrape.new
-      collection.each do |i|
-        e.get2(i)
+      if collection.empty?
+        # 1st priority NEW item
+        queue = Item._new.order('updated_at ASC').limit(MAX)
+        # 2nd priority DONE item
+        queue = Item.done.order('updated_at ASC').limit(MAX) if queue.empty?
+        # queue
+        queue.update_all(status: Item::IN_PROGRESS)
+      else
+        # Actually run the queue
+        e = Scrape.new
+        collection.each do |i|
+          e.get2(i)
+        end
+
+        sleep 30
       end
-
-      sleep 30
     end
+  rescue Exception => ex
+    $logger.error 'ERROR: ' + ex.message
+    $logger.error ex.backtrace.join("\n")
   end
 end
 

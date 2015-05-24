@@ -16,6 +16,11 @@ class Item < ActiveRecord::Base
   scope :done, -> { where(status: DONE) }
   scope :_new, -> { where(status: NEW) }
   scope :invalid, -> { where(status: INVALID) }
+
+  validates :country, presence: true
+  validates :number, presence: true
+  validates :number, format: { with: /\A[a-zA-Z0-9]{10}\z/,
+    message: "invalid ASIN" }
   
   def get_statistics(from = nil, to = nil)
     scope = self.item_statistics

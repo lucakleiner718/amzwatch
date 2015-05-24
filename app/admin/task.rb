@@ -40,12 +40,12 @@ ActiveAdmin.register Task do
 
   index do 
     column :status, sortable: :status do |r|
+      r.update_status!
       status_tag r.status
     end
     column :name
     column :progress
     column 'Action' do |r|
-      r.update_status!
       if r.running?
         link_to 'Stop', stop_admin_task_path(r), method: :get
       else

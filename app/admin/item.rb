@@ -1,5 +1,6 @@
 ActiveAdmin.register Item do
-  actions :all, :except => [:new, :edit]
+  actions :all, :except => [:edit]
+  permit_params :number, :country
   TMP = '/tmp/'
 
   scope :all, default: true
@@ -98,6 +99,16 @@ ActiveAdmin.register Item do
     path = File.join('/tmp/', "item-#{item.number}-#{Time.now.strftime('%Y.%m.%d')}.csv")
     item.item_statistics.to_csv(path)
     send_file path, :type => "application/text", :x_sendfile => true
+  end
+
+  
+
+  form do |f|
+    f.inputs Item.model_name.human do 
+      f.input :number
+      f.input :country, as: :select, collection: ['US', 'UK']
+      f.actions
+    end
   end
 
   filter :country, as: :select, collection: proc { Item.uniq.pluck(:country) }

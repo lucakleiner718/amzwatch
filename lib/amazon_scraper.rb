@@ -578,8 +578,8 @@ class Scrape
     item.title = ps.css('#btAsinTitle').first.text.strip unless item.title
     item.list_price = ps.css('#price_feature_div td').select{|e| e.text.downcase.include?('list price') }.first.next_element.text.strip.floatify if ps.css('#price_feature_div td').select{|e| e.text.downcase.include?('list price') }.first
     item.price = ps.css('#priceblock_ourprice').first.text.strip.floatify if ps.css('#priceblock_ourprice').first
-    item.price = ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first.next_element.text.strip.floatify if item.price.blank? and ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first
     item.price = ps.css('#priceblock_saleprice').first.text.strip.floatify if item.price.blank? and ps.css('#priceblock_saleprice').first
+    item.price = ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first.next_element.text.strip.floatify if item.price.blank? and ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first
     item.price = ps.css('#olp_feature_div span.a-color-price').first.text.strip.floatify if item.price.blank? and ps.css('#olp_feature_div span.a-color-price').first
     item.rank = ps.css('ul li span.zg_hrsr_rank').first.text[/[0-9,]+/].to_i if ps.css('ul li span.zg_hrsr_rank').first
 
@@ -668,8 +668,8 @@ class Scrape
       
       ps_size_ps = Nokogiri::HTML(ps_size.body[/(?<={"price_feature_div":").*(?="})/].gsub(/\\[t,n]/, "").gsub('\"', "").gsub('\/', '/'))
       price = ps_size_ps.css('#priceblock_ourprice').first.text.strip.floatify if ps_size_ps.css('#priceblock_ourprice').first
-      price = ps_size_ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first.next_element.text.strip.floatify if price.blank? and ps_size_ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first
       price = ps_size_ps.css('#priceblock_saleprice').first.text.strip.floatify if price.blank? and ps_size_ps.css('#priceblock_saleprice').first
+      price = ps_size_ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first.next_element.text.strip.floatify if price.blank? and ps_size_ps.css('#price_feature_div td').select{|e| ['Price:'].include?(e.text.strip) }.first
       price = ps_size_ps.css('#olp_feature_div span.a-color-price').first.text.strip.floatify if price.blank? and ps_size_ps.css('#olp_feature_div span.a-color-price').first
     end
 

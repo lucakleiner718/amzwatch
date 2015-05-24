@@ -26,7 +26,7 @@ class Item < ActiveRecord::Base
     scope = self.item_statistics
     scope = scope.where('created_at::date >= :from', from: Date.parse(from)) unless from.blank?
     scope = scope.where('created_at::date <= :to', to: Date.parse(to)) unless to.blank?
-    return scope.all
+    return scope.order('created_at ASC').all
   end
 
   def display_name

@@ -641,7 +641,11 @@ class Scrape
     ps2 = a.post("#{item.amazonsite}/gp/product/handle-buy-box", post_data)
     ps3 = a.get("#{item.amazonsite}/gp/cart/view.html/ref=lh_cart_vc_btn")
     ps3.parser.css('.sc-list-body > div').count
+    unless ps3.parser.css('div[data-asin="' + item.number + '"]').first
+      return 0, 'Cannot add item to Cart'
+    end
     data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
+    
     update_params = {
       'activePage' => ps3.parser.css('input[name="activePage"]').first.attributes['value'].value,
       'savedPage' => ps3.parser.css('input[name="savedPage"]').first.attributes['value'].value,

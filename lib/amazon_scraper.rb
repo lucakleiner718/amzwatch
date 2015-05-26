@@ -156,6 +156,10 @@ class Item < ActiveRecord::Base
   UK = 'UK'
   US = 'US'
 
+  def update_status_without_changing_updated_at!(status)
+    self.update_column(:status, status)
+  end
+
   def amazonsite
     if self.uk?
       return 'http://www.amazon.co.uk'
@@ -538,6 +542,7 @@ class Scrape
       log "diff = #{diff.to_s}/#{min_wait} => go ahead!"
     else
       log "diff = #{diff.to_s}/#{min_wait} => wait... "
+      item.update_status_without_changing_updated_at!(Item::DONE) unless item.url.blank?
       return
     end
 

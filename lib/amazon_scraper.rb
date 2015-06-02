@@ -708,7 +708,11 @@ class Scrape
       post_data['offerListingID'] = ps_size.body[/(?<=offerListingID." value=.")[^\\]*/]
       ps2 = a.post("#{item.amazonsite}/gp/product/handle-buy-box", post_data)
       ps3 = a.get("#{item.amazonsite}/gp/cart/view.html/ref=lh_cart_vc_btn")
-      data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
+      begin
+        data_item_id = ps3.parser.css('div[data-asin="' + item.number + '"]').first.attributes['data-itemid'].value
+      rescue Exception => ex
+        return 0, 'Unknown page format'
+      end
       
       ps_size_ps = Nokogiri::HTML(ps_size.body[/(?<={"price_feature_div":").*(?="})/].gsub(/\\[t,n]/, "").gsub('\"', "").gsub('\/', '/'))
       price = ps_size_ps.css('#priceblock_ourprice').first.text.strip.floatify if ps_size_ps.css('#priceblock_ourprice').first

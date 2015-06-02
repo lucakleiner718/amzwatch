@@ -631,7 +631,7 @@ class Scrape
 
     begin
       #item.sizes = ps.css('#native_dropdown_selected_size_name > option').map{|e| e.text.strip }.delete_if{|e| e == 'Select'}.join(" | ")
-      item.sizes = ps.css('#native_dropdown_selected_size_name > option').select{|option| option.attributes['value'].value.include?('B00MGGY7WI') }.first.text.strip
+      item.sizes = ps.css('#native_dropdown_selected_size_name > option').select{|option| option.attributes['value'].value.include?(item.number) }.first.text.strip
     rescue Exception => ex
       
     end

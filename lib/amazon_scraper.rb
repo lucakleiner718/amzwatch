@@ -193,7 +193,7 @@ class ItemStatistic < ActiveRecord::Base
       UPDATE item_statistics origin SET qty_change = (
         SELECT origin.qty_left - qty_left 
         FROM item_statistics 
-        WHERE item_id = origin.item_id AND created_at < origin.created_at
+        WHERE item_id = origin.item_id AND id < origin.id
         ORDER by created_at DESC
         LIMIT 1
       ) WHERE qty_change IS NULL;
@@ -617,6 +617,8 @@ class Scrape
     item.description = ps.css('.productDescriptionWrapper').first.inner_html.html2text if ps.css('.productDescriptionWrapper').first
     item.description = ps.css('#productDescription').first.inner_html.html2text if item.description.blank? and ps.css('#productDescription').first
     item.description = item.description.fix if item.description
+
+    item.seller_name = ps.css('#brand').first.text.strip if ps.css('#brand').first
     
     # image
     img_url = ps.css('#landingImage').first.attributes['data-old-hires'].value if ps.css('#landingImage').first
@@ -628,13 +630,15 @@ class Scrape
     item.status = Item::DONE
 
     begin
-      item.sizes = ps.css('#native_dropdown_selected_size_name > option').map{|e| e.text.strip }.delete_if{|e| e == 'Select'}.join(" | ")
+      #item.sizes = ps.css('#native_dropdown_selected_size_name > option').map{|e| e.text.strip }.delete_if{|e| e == 'Select'}.join(" | ")
+      item.sizes = ps.css('#native_dropdown_selected_size_name > option').select{|option| option.attributes['value'].value.include?('B00MGGY7WI') }.first.text.strip
     rescue Exception => ex
       
     end
 
     begin
-      item.colors = ps.css('#variation_color_name > ul > li').map{|li| li.attributes['title'].value.gsub('Click to select ', '') }.join(" | ")
+      #item.colors = ps.css('#variation_color_name > ul > li').map{|li| li.attributes['title'].value.gsub('Click to select ', '') }.join(" | ")
+      item.colors = ps.css('li.swatchSelect').first.attributes['title'].value.gsub('Click to select ', '') if ps.css('li.swatchSelect').first
     rescue Exception => ex
       
     end

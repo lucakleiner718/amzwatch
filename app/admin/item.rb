@@ -29,35 +29,43 @@ ActiveAdmin.register Item do
       end
     end
     column :country
-    column :price, sortable: :price do |r|
-      number_with_delimiter r.price if r.price
-    end
-    column :category, sortable: :category do |r|
-      if r.category
-        r.category.split(" › ").last
-      end
-    end
     column :title, sortable: :title do |r|
       div :style => 'min-width: 250px;max-width:450px' do 
         r.title
       end
     end
-    column :description, sortable: :description do |r|
-      div :style => 'min-width: 350px;max-width:450px' do 
-        r.description
+    column :seller_name
+    column :category, sortable: :category do |r|
+      if r.category
+        r.category.split(" › ").last
       end
     end
-    column :sizes, sortable: :sizes do |r|
-      div :style => 'min-width: 150px;max-width:250px' do 
-        r.sizes
-      end
+    column :sizes
+    column :colors
+
+    
+    
+    #column :description, sortable: :description do |r|
+    #  div :style => 'min-width: 350px;max-width:450px' do 
+    #    r.description
+    #  end
+    #end
+    #column :sizes, sortable: :sizes do |r|
+    #  div :style => 'min-width: 150px;max-width:250px' do 
+    #    r.sizes
+    #  end
+    #end
+    #column :colors, sortable: :colors do |r|
+    #  div :style => 'min-width: 150px;max-width:250px' do 
+    #    r.colors
+    #  end
+    #end
+    column :price, sortable: :price do |r|
+      number_with_delimiter r.price if r.price
     end
-    column :colors, sortable: :colors do |r|
-      div :style => 'min-width: 150px;max-width:250px' do 
-        r.colors
-      end
-    end
+
     column :rank
+
     column :qty_left, sortable: :qty_left do |r|
       if r.notes
         raw r.qty_left.to_s + "<br>(#{r.notes})"

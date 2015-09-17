@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150521190633) do
+ActiveRecord::Schema.define(version: 20150602173158) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -55,6 +55,7 @@ ActiveRecord::Schema.define(version: 20150521190633) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer  "item_id"
+    t.integer  "qty_change"
   end
 
   add_index "item_statistics", ["item_id"], name: "index_item_statistics_on_item_id", using: :btree
@@ -77,6 +78,9 @@ ActiveRecord::Schema.define(version: 20150521190633) do
     t.string   "notes"
     t.datetime "created_at",                   null: false
     t.datetime "updated_at",                   null: false
+    t.text     "sizes"
+    t.text     "colors"
+    t.string   "seller_name"
   end
 
   create_table "proxies", force: :cascade do |t|
@@ -84,11 +88,11 @@ ActiveRecord::Schema.define(version: 20150521190633) do
     t.integer  "port"
     t.string   "username"
     t.string   "password"
-    t.string   "status"
+    t.string   "status",        default: "alive"
     t.integer  "hit_count",     default: 0
     t.integer  "failure_count", default: 0
-    t.datetime "created_at",                null: false
-    t.datetime "updated_at",                null: false
+    t.datetime "created_at",                      null: false
+    t.datetime "updated_at",                      null: false
   end
 
   create_table "settings", force: :cascade do |t|

@@ -566,7 +566,7 @@ class Scrape
   end
 
   def get2(item)
-    log "Fetching #{item.url}"
+    log "Fetching #{item.get_url}"
     
     diff = (Time.now.to_date - item.updated_at.to_date).to_i
     min_wait = Setting::get('UPDATE_AFTER_X_DAYS', Float)

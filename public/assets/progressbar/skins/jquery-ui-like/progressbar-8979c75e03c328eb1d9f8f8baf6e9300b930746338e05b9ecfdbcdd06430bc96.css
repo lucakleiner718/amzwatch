@@ -1,0 +1,14 @@
+/* line 1, /home/amazon/amazon150527/vendor/assets/plugins/progressbar/skins/jquery-ui-like/progressbar.css.scss */
+.jquery-ui-like {
+  border-radius: 4px;
+  background: #FFF;
+  border: 1px solid #AAA;
+  overflow: hidden;
+}
+
+/* line 7, /home/amazon/amazon150527/vendor/assets/plugins/progressbar/skins/jquery-ui-like/progressbar.css.scss */
+.jquery-ui-like div {
+  background-image: url(/assets/progressbar/skins/jquery-ui-like/pbar-ani-0b4a1a099f0be991bc07a5b5f332ef2a84cb28b593db65816b350a3c7b6cf70d.gif);
+  border-right: 1px solid #AAA;
+  text-align: right;
+}
